@@ -1,22 +1,22 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from flask import Flask, request
-import asyncio
+import os
 import threading
 
 # ================== CONFIG ==================
-TOKEN = "8991740281:AAG0cIFGLlmUql0wsDtDLoQpjDoYKZS0gP0"          # ដាក់ Bot Token របស់អ្នក
-CHANNEL_ID = "-1003762681312"          # ដាក់ Channel/Group ID (អវិជ្ជមានសម្រាប់ group)
+TOKEN = os.getenv("8991740281:AAG0cIFGLlmUql0wsDtDLoQpjDoYKZS0gP0")                    # ប្រើ Environment Variable
+CHANNEL_ID = os.getenv("-1003762681312")              # ប្រើ Environment Variable
 # ===========================================
 
 app = Flask(__name__)
-bot = None  # នឹងកំណត់នៅពេល bot ដំណើរការ
+bot = None
 
 @app.route('/webhook', methods=['POST'])
 async def xauusd_webhook():
     global bot
     try:
-        data = request.json
+        data = request.get_json()
         message = f"""🚨 **XAUUSD ALERT** 🚨
 
 {data.get('message', 'New Signal')}
@@ -37,28 +37,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 **សួស្តី!**\n\n"
         "ខ្ញុំជា **Khmer XAUUSD Signals Bot** 🪙\n"
-        "ខ្ញុំនឹងផ្ញើ alert តម្លៃមាស និង trading signals ជូន។\n\n"
-        "/alerts - កំណត់តម្លៃដែលចង់តាមដាន\n"
-        "/help - មើលព័ត៌មានបន្ថែម"
+        "ខ្ញុំនឹងផ្ញើ alert តម្លៃមាស និង signals ជូន។\n\n"
+        "/alerts - កំណត់តម្លៃដែលចង់តាមដាន"
     )
 
 def run_flask():
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    # Create bot application
     application = Application.builder().token(TOKEN).build()
     global bot
     bot = application.bot
 
-    # Add handlers
     application.add_handler(CommandHandler("start", start))
 
-    # Run Flask in background thread
+    # Run Flask
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
 
-    print("✅ Bot កំពុងដំណើរការ... Webhook ត្រៀមទទួលពី TradingView")
+    print("✅ Bot is running...")
+    application.run_polling()
     
     # Run Telegram bot
     application.run_polling()
